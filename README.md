@@ -1,72 +1,169 @@
-# Shopify Inventory Sync App
+<p align="center">
+  <img src="https://cdn.worldvectorlogo.com/logos/shopify.svg" alt="Shopify Logo" width="120"/>
+</p>
 
-Shopify Inventory Sync App is a Shopify embedded app built with React Router and Prisma that connects Shopify inventory with Google Sheets.
+# 📦 Shopify Inventory Sync App
 
-It gives you a lightweight backend that Google Apps Script can call to:
+A Shopify embedded app that connects Shopify inventory with Google Sheets for location-wise stock management.
+
+🚀 Built to help merchants manage inventory faster by using Google Sheets as an operational control panel while syncing stock updates directly with Shopify.
+
+---
+
+## 🔗 Project Overview
+
+This app acts as a bridge between **Shopify** and **Google Sheets**.
+
+It provides protected backend routes that Google Apps Script can call to:
 
 - load active Shopify locations into a sheet
-- read live inventory into a `Master_Live_inventory` sheet
-- push quantity updates from an `Inventory_input` sheet back to Shopify
-- return audit details for each inventory update so changes can be logged
+- pull live inventory into a master sheet
+- push inventory updates from Google Sheets back to Shopify
+- return audit details for update logging and traceability
 
-## What It Does
+---
 
-- Reads active Shopify locations through a protected API route
-- Returns flattened live inventory rows for Google Sheets
-- Updates inventory quantities by `inventoryItemId` and `locationId`
-- Automatically activates inventory at a location if the item is not yet stocked there
-- Returns before, requested, and after quantities for update logging
-- Uses Prisma session storage for Shopify app auth
+## 💡 Problem
 
-## Main API Routes
+Many merchants still manage inventory operationally in spreadsheets, especially when:
 
-These routes are intended to be called by Google Apps Script or another trusted integration.
+- stock is reviewed by warehouse teams outside Shopify
+- multiple locations need quick bulk updates
+- internal teams prefer a spreadsheet workflow
+- manual inventory updates in Shopify become repetitive and time-consuming
 
-| Route | Method | Purpose |
-| --- | --- | --- |
-| `/api/gs/health` | `GET` | Basic health check |
-| `/api/gs/locations` | `GET` | Returns active Shopify locations |
-| `/api/gs/master-live-inventory` | `GET` | Returns flattened live inventory rows |
-| `/api/gs/sync` | `POST` | Updates inventory and returns audit details |
+Shopify is the source of truth for inventory, but operational inventory handling is often still done in Google Sheets.
 
-All Google Sheets routes use the `x-api-key` header and validate it against `GOOGLE_SHEETS_API_KEY`.
+---
 
-## Google Sheets Workflow
+## 🧠 Solution
 
-This project is designed around a spreadsheet flow like this:
+This app creates a lightweight integration layer between Shopify and Google Sheets.
 
-### `config`
+Instead of updating inventory manually inside Shopify, a spreadsheet can be used as the working interface while the app handles:
 
-Stores Google Sheets integration values such as:
+- location lookup
+- live inventory reads
+- inventory updates by `inventoryItemId` and `locationId`
+- audit-friendly responses for logging
+- secure communication through protected API routes
+
+This makes it easier to manage stock across multiple locations using a workflow teams already know.
+
+---
+
+## 🔥 Key Features
+
+### 1. 📍 Load Shopify Locations
+- Returns active Shopify locations through a protected API route
+- Makes it easy to map Google Sheets columns to real Shopify locations
+- Supports multi-location inventory workflows
+
+---
+
+### 2. 📊 Master Live Inventory View
+- Pulls current Shopify inventory by location
+- Returns flattened rows for spreadsheet-friendly display
+- Helps teams review live stock in one place
+
+---
+
+### 3. 🔄 Push Inventory Updates from Google Sheets
+- Sends updated quantities from a sheet back to Shopify
+- Updates stock using `inventoryItemId` and `locationId`
+- Supports location-wise inventory management
+
+---
+
+### 4. 🧾 Audit-Friendly Sync Responses
+- Returns useful update details for logging
+- Supports before/after tracking, requested quantity, and timestamps
+- Makes it easier to maintain an `Inventory_Update_Log` sheet
+
+---
+
+### 5. 🔐 Protected Backend Routes
+- Google Sheets integration routes are protected with a shared API key
+- Prevents open public access to inventory endpoints
+- Keeps the integration simple and controlled for internal use
+
+---
+
+## 🏗️ Tech Stack
+
+**Frontend**
+- Shopify App React Router
+- React Router 7
+
+**Backend**
+- Node.js
+- Shopify Admin API
+- Shopify embedded app architecture
+
+**Database / Session Storage**
+- Prisma
+- SQLite for local development
+
+**Integration Layer**
+- Google Sheets
+- Google Apps Script
+
+---
+
+## ⚙️ How It Works
+
+1. The Shopify app authenticates with the target store
+2. Google Sheets calls protected backend routes using Apps Script
+3. The app reads Shopify locations and live inventory data
+4. Inventory rows are returned in a spreadsheet-friendly structure
+5. Updated sheet quantities are posted back to the app
+6. The app sends inventory updates to Shopify
+7. Audit details can be written back into a log sheet
+
+---
+
+## 📄 Suggested Google Sheets Structure
+
+### `Config`
+Stores integration values such as:
 
 - `SHOPIFY_STORE_DOMAIN`
 - `APP_BASE_URL`
 - `APP_API_KEY`
 
-### `location`
+---
 
-Populated from `/api/gs/locations` with:
+### `Locations`
+Loaded from `/api/gs/locations`
+
+Suggested columns:
 
 - `Location Name`
 - `Location ID`
 - `Active`
 
-### `Inventory_input`
+---
 
-Used to push updates to Shopify. Recommended columns:
+### `Inventory_Input`
+Used to push inventory changes to Shopify
+
+Suggested columns:
 
 - `SKU`
 - `Product Title`
 - `Variant Title`
 - `Variant ID`
 - `Inventory Item ID`
-- one column per warehouse or location
+- one column per Shopify location
 - `Sync Status`
 - `Last Sync`
 
-### `Master_Live_inventory`
+---
 
-Populated from `/api/gs/master-live-inventory` with:
+### `Master_Live_Inventory`
+Loaded from `/api/gs/master-live-inventory`
+
+Suggested columns:
 
 - `SKU`
 - `Product Title`
@@ -78,51 +175,81 @@ Populated from `/api/gs/master-live-inventory` with:
 - `Available Quantity`
 - `Last Refreshed`
 
-### `Inventory_Update_Log`
+---
 
-Optional log sheet that stores every successful update with:
+### `Inventory_Update_Log` *(optional)*
+Used for traceability and audit history
 
-- updated date and time
+Suggested fields:
+
+- update date/time
 - source row
-- product and location details
+- SKU
+- product and variant details
+- location details
 - before quantity
 - requested quantity
 - after quantity
 - delta
-- whether the location had to be activated first
+- activation status if needed
 
-## Example Sync Response
+---
 
-`POST /api/gs/sync` returns audit information that can be written directly into an update log:
+## ✅ Current Status
 
-```json
-{
-  "ok": true,
-  "activatedLocation": false,
-  "audit": {
-    "inventoryItemId": "gid://shopify/InventoryItem/123",
-    "locationId": "gid://shopify/Location/456",
-    "sku": "sku-1",
-    "productTitle": "Example Product",
-    "variantTitle": "Default Title",
-    "variantId": "gid://shopify/ProductVariant/789",
-    "locationName": "Canada Warehouse",
-    "beforeQuantity": 10,
-    "requestedQuantity": 12,
-    "afterQuantity": 12,
-    "quantityDelta": 2,
-    "updatedAt": "2026-04-21T20:00:00.000Z"
-  }
-}
-```
+Completed and working
 
-## Tech Stack
+- ✔️ Shopify app setup completed  
+- ✔️ Protected API routes built  
+- ✔️ Health check route working  
+- ✔️ Shopify locations route working  
+- ✔️ Live inventory flow implemented  
+- ✔️ Google Sheets integration completed  
+- ✔️ Inventory sync flow completed  
+- ✔️ API key protection implemented  
+- ✔️ Route-level troubleshooting and testing completed  
 
-- Shopify App React Router
-- React Router 7
-- Prisma
-- SQLite for local session storage
-- Google Apps Script on the spreadsheet side
+---
+
+## 🛠️ Issues Faced / Troubleshooting Done
+
+During development, I worked through several real implementation issues, including:
+
+- Shopify app installation and scope setup
+- route registration issues in React Router
+- missing `loader` handling for resource routes
+- TypeScript environment issues such as `Cannot find name 'process'`
+- API key protection and request header validation
+- PowerShell header formatting issues during endpoint testing
+- GraphQL request debugging against Shopify Admin API
+- app configuration and local tunnel testing with Shopify CLI
+
+Troubleshooting included:
+
+- fixing route module structure for backend endpoints
+- updating TypeScript config to include Node types
+- testing routes incrementally starting from `/api/gs/health`
+- validating request headers and protected route behavior
+- debugging Shopify GraphQL responses step by step
+- separating authentication issues from GraphQL/query issues
+
+---
+
+## 📁 Project Structure
+
+```text
+app/
+  routes/
+    api.gs.health.ts
+    api.gs.locations.ts
+    api.gs.master-live-inventory.ts
+    api.gs.sync.ts
+  shopify.server.js
+
+prisma/
+  schema.prisma
+
+shopify.app.toml
 
 ## Local Development
 
@@ -171,12 +298,6 @@ SCOPES=write_products,write_metaobjects,write_metaobject_definitions,read_locati
 GOOGLE_SHEETS_API_KEY=your_google_sheets_shared_secret
 ```
 
-Notes:
-
-- `GOOGLE_SHEETS_API_KEY` is the shared secret used by Google Apps Script
-- do not commit `.env`
-- rotate secrets if they were ever exposed
-
 ## Shopify Configuration
 
 The app uses the following important Shopify access scopes:
@@ -186,40 +307,6 @@ The app uses the following important Shopify access scopes:
 - `write_products`
 - `write_metaobjects`
 - `write_metaobject_definitions`
-
-If you add scopes, redeploy the app configuration and reinstall or re-approve the app as needed.
-
-## Production Notes
-
-Before installing this app on a real store, update production settings properly:
-
-- host the app on a stable HTTPS URL
-- replace `application_url` and auth redirect URLs in `shopify.app.toml`
-- deploy app configuration with `shopify app deploy`
-- deploy the web app separately to your hosting provider
-- use persistent session storage in production if your host does not preserve local files
-
-The default local Prisma setup uses SQLite:
-
-```prisma
-datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
-}
-```
-
-SQLite is fine for local development and simple single-instance setups, but production deployments often use a managed database.
-
-## Installing on Another Store
-
-You can reuse this same codebase for another Shopify store, but the recommended setup is:
-
-- create a separate app record in the Shopify Partner Dashboard
-- use a separate set of app credentials
-- configure the new app for the target store
-- deploy the same code with the new environment variables
-
-For multiple unrelated live stores, you may eventually want a public app. For one store or one Plus organization, custom distribution is usually the right fit.
 
 ## Project Structure
 
@@ -247,21 +334,6 @@ npm run setup       # Prisma generate + migrate deploy
 npm run deploy      # Deploy Shopify app configuration
 ```
 
-## Security Notes
-
-- Protect all Google Sheets routes with `GOOGLE_SHEETS_API_KEY`
-- Never hardcode secrets in Apps Script or screenshots
-- Rotate any secret that has been shared or exposed
-- Limit production distribution to the intended stores
-
-## Roadmap Ideas
-
-- sync only changed rows from Google Sheets
-- SKU lookup endpoint for `Inventory_input`
-- scheduled refresh for `Master_Live_inventory`
-- richer update history and rollback support
-- multi-store deployment configuration
-
 ## License
 
-Private/internal project unless you choose to add a license.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
